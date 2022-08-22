@@ -5,7 +5,23 @@ on:
       - master
 
 jobs:
-  build:
+  check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: brew install gawk coreutils
+        if: ${{ matrix.os == 'macos-latest' }}
+      - name: Test
+        run: make check
+  release:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Check out
