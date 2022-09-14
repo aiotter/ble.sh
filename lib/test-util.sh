@@ -1593,6 +1593,37 @@ ble/util/msleep/.calibrate-loop &>/dev/null
 ble/util/msleep/.calibrate-loop &>/dev/null
 ble/util/msleep/.calibrate-loop &>/dev/null
 (
+  # macOS debug
+  cc -o epoch.tmp -x c - <<EOF
+#include <sys/time.h>
+#include <stdio.h>
+int main() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  printf("%ld.%06u\n", tv.tv_sec, tv.tv_usec);
+}
+EOF
+  chmod +x epoch.tmp
+  measure() {
+    local beg=$(./epoch.tmp)
+    eval "$1"
+    local end=$(./epoch.tmp)
+    echo "$(bc -l <<< "$end-$beg"): $1"
+  }
+
+  for i in {0..100}; do
+    measure ":"
+  done
+  for i in {0..100}; do
+    measure "sleep 0.001"
+  done
+  for i in {200..1000}; do
+    printf -v v '0.%03d' "$i"
+    measure "sleep $v"
+  done
+
+  rm epoch.tmp
+
   ble/test 'ble-measure -q "ble/util/msleep 100"; echo "$ret usec" >&2; ((msec=ret/1000,90<=msec&&msec<=110))'
   ble/test 'ble-measure -q "ble/util/sleep 0.1"; echo "$ret usec" >&2; ((msec=ret/1000,90<=msec&&msec<=110))'
 )
@@ -1823,7 +1854,7 @@ ble/util/msleep/.calibrate-loop &>/dev/null
   ble/test 'ble/util/c2s.cached 956' ret=μ
   ble/test 'ble/util/c2s.cached 12354' ret=あ
 
-  LANG=C
+  LC_ALL=C
   ble/test 'ble/util/c2s 97' ret=a
   ble/test 'ble/util/c2s 956; [[ $ret != μ ]]'
   ble/test 'ble/util/c2s 12354; [[ $ret != あ ]]'
